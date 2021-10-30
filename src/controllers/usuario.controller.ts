@@ -15,7 +15,7 @@ import {
 import {Configuraciones} from '../config/configuraciones';
 import {Credenciales, CredencialesCambioClave, CredencialesRecuperarClave, NotificacionCorreo, NotificacionSms, Usuario} from '../models';
 import {UsuarioRepository} from '../repositories';
-import {AdministradorDeClavesService, NotificacionesService} from '../services';
+import {AdministradorDeClavesService, NotificacionesService, SesionUsuariosService} from '../services';
 
 export class UsuarioController {
   constructor(
@@ -24,7 +24,9 @@ export class UsuarioController {
     @service(AdministradorDeClavesService)
     public servicioClaves: AdministradorDeClavesService,
     @service(NotificacionesService)
-    public servicioNotificaciones: NotificacionesService
+    public servicioNotificaciones: NotificacionesService,
+    @service(SesionUsuariosService)
+    private servicioSesionUsuario: SesionUsuariosService
   ) { }
 
   @post('/usuarios')
@@ -174,17 +176,17 @@ export class UsuarioController {
   })
   async identificar(
     @requestBody() credenciales: Credenciales
-  ): Promise<object | null> {
-    let usuario = await this.usuarioRepository.findOne({
-      where: {
-        correo: credenciales.usuario,
-        clave: credenciales.clave
-      }
-    });
+  ): Promise<Object> {
+    let usuario = await this.servicioSesionUsuario.ValidarCredenciales(credenciales);
+    let token = "";
     if (usuario) {
       usuario.clave = "";
+      token = await this.servicioSesionUsuario.CrearToken(usuario);
     }
-    return usuario;
+    return {
+      tk: token,
+      usuario: usuario
+    };
   }
 
 
